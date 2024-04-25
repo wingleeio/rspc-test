@@ -2,6 +2,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "**/*.civet",
     "**/.server/**/*.ts",
     "**/.server/**/*.tsx",
     "**/.client/**/*.ts",

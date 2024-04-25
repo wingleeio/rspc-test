@@ -11,8 +11,7 @@ export default function Index() {
     api.query(["version"]).then((result) => {
       console.log("Server version:", result);
     });
-
-    let test = api.addSubscription(["pings"], {
+    let unsubscribe = api.addSubscription(["pings"], {
       onData: (data) => {
         console.log("Ping:", data);
       },
@@ -21,7 +20,7 @@ export default function Index() {
       },
     });
     return () => {
-      test();
+      unsubscribe();
     };
   }, []);
   return (

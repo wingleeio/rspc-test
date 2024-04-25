@@ -23,9 +23,10 @@ tokio = { version = "1.33.0", features = [
 tower-http = { version = "0.4.4", default-features = false, features = [
     "cors",
 ] }
-tower-cookies = "0.10.0"
+tower-cookies = "0.8.0"
 tower = "0.4.13"
 async-stream = "0.3.5"
+cookie = "0.17.0"
 
 [patch.crates-io]
 specta = { git = "https://github.com/oscartbeaumont/specta", rev = "ca8151f16e6fc0fd3a18bef1a1fd35f481f9588f" }
