@@ -27,10 +27,14 @@ export default function Index() {
     <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
       <h1>Welcome to Remix</h1>
       <button
-        onClick={() => {
-          api.query(["version"]).then((result) => {
-            console.log("Server version:", result);
-          });
+        onClick={async () => {
+          let promises = [];
+          console.time("500 queries");
+          for (let i = 0; i < 500; i++) {
+            promises.push(api.query(["version"]));
+          }
+          await Promise.all(promises);
+          console.timeEnd("500 queries");
         }}
       >
         Test

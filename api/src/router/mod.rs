@@ -1,7 +1,6 @@
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 
 use async_stream::stream;
@@ -9,8 +8,6 @@ use rspc::{
     integrations::httpz::{CookieJar, Request},
     BuiltRouter, ExportConfig, Rspc,
 };
-
-use tokio::time::sleep;
 
 use crate::core::context::{self, Context};
 
@@ -56,10 +53,9 @@ pub fn get() -> Arc<BuiltRouter<Context>> {
                 println!("Client subscribed to 'pings'");
                 stream! {
                     yield "start".to_string();
-                    for i in 0..10 {
-                        yield i.to_string();
-                        sleep(Duration::from_secs(1)).await;
-                    }
+                    // while let Some(event) = rx.recv().await {
+                    //     yield event; // Yield each received event
+                    // }
                 }
             }),
         )

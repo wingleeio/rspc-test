@@ -6,12 +6,13 @@ use axum::{
     Router,
 };
 
-use core::context::Context;
+use core::context::{self, Context};
 use rspc::integrations::httpz::Request;
 use std::{
     error::Error,
     net::{Ipv6Addr, SocketAddr},
 };
+use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
 
 mod core;
@@ -26,11 +27,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .allow_credentials(true);
 
     let router = router::get();
+
+    let (tx, mut rx) = mpsc::channel::<String>(10);
+
     let app = Router::new()
         .nest(
             "/",
             router
-                .endpoint(move |req: Request| Context::new(req))
+                .endpoint(move |req: Request| {
+                    let mut ctx = Context::new(req);
+
+                    context::add!(ctx, tx.clone());
+
+                    ctx
+                })
                 .axum(),
         )
         .layer(cors);
