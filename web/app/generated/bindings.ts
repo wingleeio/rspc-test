@@ -6,5 +6,5 @@ export type Procedures = {
         { key: "version", input: never, result: string },
     mutations: never,
     subscriptions: 
-        { key: "pings", input: never, result: string }
+        { key: "pings", input: never, result: number }
 };

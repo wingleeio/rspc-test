@@ -1,8 +1,4 @@
-use rspc::integrations::httpz::Request;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Arc};
 
 #[derive(Clone, Debug, Default)]
 pub struct Context {
@@ -51,15 +47,12 @@ macro_rules! middleware {
 pub(crate) use middleware;
 
 impl Context {
-    pub fn new(req: Request) -> Self {
-        let mut ctx = Self {
+    pub fn new() -> Self {
+        Self {
             data: HashMap::new(),
-        };
-
-        add!(ctx, Mutex::new(req));
-
-        ctx
+        }
     }
+
     pub fn insert<T: Send + Sync + 'static>(&mut self, key: &str, value: T) {
         self.data.insert(key.to_string(), Arc::new(value));
     }
