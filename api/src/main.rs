@@ -1,4 +1,3 @@
-use async_stream::stream;
 use axum::{
     http::{
         header::{AUTHORIZATION, CONTENT_TYPE},
@@ -6,101 +5,17 @@ use axum::{
     },
     Router,
 };
-use cookie::Cookie;
-use rspc::{
-    integrations::httpz::{CookieJar, Request},
-    internal::middleware::{ConstrainedMiddleware, SealedMiddleware},
-    BuiltRouter, ErrorCode, ExportConfig, Rspc,
-};
+
+use core::context::Context;
+use rspc::integrations::httpz::Request;
 use std::{
     error::Error,
     net::{Ipv6Addr, SocketAddr},
-    path::PathBuf,
-    sync::Arc,
-    time::Duration,
 };
-use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
 
-#[derive(Clone, Debug)]
-struct Context {
-    cookies: Option<CookieJar>,
-}
-
-struct ContextWithCookies {
-    cookies: CookieJar,
-}
-
-#[derive(Clone)]
-struct ContextWithAuthentication {
-    cookies: CookieJar,
-}
-
-const R: Rspc<Context> = Rspc::new();
-
-macro_rules! middleware {
-    ($context:ty, $new_ctx:ty) => {
-        impl ConstrainedMiddleware<$context> + SealedMiddleware<$context, NewCtx = $new_ctx>
-    }
-}
-
-fn cookies() -> middleware!(Context, ContextWithCookies) {
-    |mw, ctx| async move {
-        let cookies = ctx.cookies.ok_or_else(|| {
-            rspc::Error::new(
-                ErrorCode::InternalServerError,
-                "Failed to find cookies in the request.".to_string(),
-            )
-        })?;
-
-        Ok(mw.next(ContextWithCookies { cookies }))
-    }
-}
-
-fn auth() -> middleware!(ContextWithCookies, ContextWithAuthentication) {
-    |mw, ctx| async move {
-        mw.next(ContextWithAuthentication {
-            cookies: ctx.cookies,
-        })
-    }
-}
-
-fn router() -> Arc<BuiltRouter<Context>> {
-    let version_query = R
-        .with(cookies())
-        .with(auth())
-        .query(|_ctx, _: ()| Ok("0.1.0"));
-
-    let router = R
-        .router()
-        .procedure("version", version_query)
-        .procedure("echo", R.query(|_, _: ()| Ok("0.1.0")))
-        .procedure(
-            "pings",
-            R.subscription(|_, _: ()| {
-                println!("Client subscribed to 'pings'");
-                stream! {
-                    yield "start".to_string();
-                    for i in 0..10 {
-                        yield i.to_string();
-                        sleep(Duration::from_secs(1)).await;
-                    }
-                }
-            }),
-        )
-        .build()
-        .unwrap()
-        .arced();
-
-    #[cfg(debug_assertions)]
-    router
-        .export_ts(ExportConfig::new(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../web/app/generated/bindings.ts"),
-        ))
-        .unwrap();
-
-    router
-}
+mod core;
+mod router;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -110,14 +25,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .allow_headers([AUTHORIZATION, CONTENT_TYPE])
         .allow_credentials(true);
 
-    let router = router();
+    let router = router::get();
     let app = Router::new()
         .nest(
             "/",
             router
-                .endpoint(move |mut req: Request| Context {
-                    cookies: req.cookies(),
-                })
+                .endpoint(move |req: Request| Context::new(req))
                 .axum(),
         )
         .layer(cors);
